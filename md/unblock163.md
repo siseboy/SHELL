@@ -1,16 +1,20 @@
+# 📑 unblock163.sh
+
 ## 脚本介绍
 
-该脚本基于 [Github - UnblockNeteaseMusic](https://github.com/nondanee/UnblockNeteaseMusic) 项目。\
-UnblockNeteaseMusic 是一个专门针对网易云音乐解锁灰色无版权音乐的代理工具，通过替换经过代理的无版权音乐链接为其他音源（如：QQ音源、酷我、酷狗、百度音乐、咪咕、JOOX等）来实现解锁网易云音乐无版权音乐。  
-**相当于在网易云音乐客户端中听全网版权音乐（相对）！**
+?> 该脚本基于 [UnblockNeteaseMusic](https://github.com/nondanee/UnblockNeteaseMusic) 项目。  
 
-!>  **·** 该脚本只适用于服务器，如果只想在本地使用，请使用我写的 [Windows 版 UnblockNeteaseMusic](https://zhuanlan.zhihu.com/p/79631291)！  
-**·** **建议有条件的部署在国内服务器**，国外服务器只能用 QQ 音源（其他的音源不允许国外访问），况且部署在国外服务器相比国内或者本地速度会慢上不少(具体取决服务器与你之间链接的质量)。
+UnblockNeteaseMusic 是一个可以解锁网易云音乐灰色无版权音乐的代理工具。  
+原理是通过替换无版权音乐的链接为其他音源（QQ、酷我、酷狗、百度、咪咕、JOOX等）来实现解锁无版权音乐。**相当于在网易云音乐客户端中听全网版权音乐！**  
+
+?> 该脚本只适用于服务器，如果只想本地使用，请使用我写的 ~~[Windows 版](https://www.lanzoux.com/b0sopazc)~~ (被律师函警告，已停止更新)！  
+**建议有条件的部署在国内服务器**，国外服务器只能用 QQ 音源，况且部署在国外相比国内或本地会慢上不少。
 
 ### 脚本版本
-**最新版本：** v1.0.6
+**最新版本：** v1.1.1  
+
 ### 系统要求
-CentOS 6+ / Debian 6+ / Ubuntu 14.04 +
+CentOS 6+ / Debian 6+ / Ubuntu 14.04 +  
 
 ****
 
@@ -34,7 +38,7 @@ sudo su
 执行下面一行代码下载并运行脚本：
 
 ``` bash
-wget -N --no-check-certificate https://raw.githubusercontent.com/XIU2/SHELL/master/unblock163.sh && chmod +x unblock163.sh && bash unblock163.sh
+wget -N --no-check-certificate https://shell.xiu2.xyz/unblock163.sh && chmod +x unblock163.sh && bash unblock163.sh
 ```
 
 下载运行后会提示你输入数字来选择要做什么。
@@ -69,6 +73,13 @@ wget -N --no-check-certificate https://raw.githubusercontent.com/XIU2/SHELL/mast
 	严格模式 :  YES 
 ------------------------
 
+指定网易服务器 IP，不懂请跳过。[格式：IPv4]
+(默认为空):
+
+------------------------
+	指定 IP :   
+------------------------
+
 [信息] 开始安装/配置 依赖...
 [信息] 开始下载/安装...
 ...
@@ -77,12 +88,13 @@ wget -N --no-check-certificate https://raw.githubusercontent.com/XIU2/SHELL/mast
 ``` bash
 	UnblockNeteaseMusic 配置信息：
 	------------------------
-	本机地址	: X.X.X.X
-	代理端口	: 80
-	音源排序	: qq migu kuwo kugou baidu
-	严格模式	: YES
+	本机地址: X.X.X.X
+	代理端口: 80
+	音源排序: qq migu kuwo kugou baidu
+	严格模式: YES
+	指定 IP: 
 
-	PAC 地址	: http://X.X.X.X:80/proxy.pac
+	PAC 地址: http://X.X.X.X:80/proxy.pac
 ```
 
 ****
@@ -165,13 +177,13 @@ bash unblock163.sh
   
   0. 更新脚本
 ----------
-  1. 安装 UnblockNeteaseMusic
-  2. 更新 UnblockNeteaseMusic
-  3. 卸载 UnblockNeteaseMusic
+  1. 安装
+  2. 更新
+  3. 卸载
 ----------
-  4. 启动 UnblockNeteaseMusic
-  5. 停止 UnblockNeteaseMusic
-  6. 重启 UnblockNeteaseMusic
+  4. 启动
+  5. 停止
+  6. 重启
 ----------
   7. 设置 配置信息
   8. 查看 账号信息
@@ -209,7 +221,7 @@ bash unblock163.sh
 <details>
 <summary>点击展开 查看更多</summary>
 
-``` bash
+```
 HTTP Server running @ http://0.0.0.0:80
 events.js:174
       throw er; // Unhandled 'error' event
@@ -224,14 +236,14 @@ Emitted 'error' event at:
     at emitErrorNT (net.js:1306:8)
     at process._tickCallback (internal/process/next_tick.js:63:19)
 ```
-请使用 `netstat -lntp | grep "端口"` 查看是被哪个程序占用了。  
-例如提示如下内容，则可以使用 `kill -9 4725` 命令来结束该进程。当然，如果该程序不能关闭，你也可以选择换个代理端口。  
-``` bash
-tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      4725/nginx
+请使用 `ss -ltp|grep 端口号` 查看是被哪个程序占用了。  
+例如提示如下内容，则可以使用 `kill -9 2333` 命令来结束该进程（如果有两个 pid 就结束最后那个）。  
+```
+State         Recv-Q         Send-Q                    Local Address:Port                     Peer Address:Port
+LISTEN0      128           0.0.0.0:80         0.0.0.0:*    users:(("nginx",pid=6666,fd=14),("nginx",pid=2333,fd=14))
 ```
 
 </details>
-
 
 ****
 
@@ -244,23 +256,47 @@ tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      
 
 ## 更新日志
 
+#### 2021年03月25日，版本 v1.1.1 :id=111
+ - **1. 调整** UnblockNeteaseMusic 仓库源为国内镜像源。  
+> 有效解决国内服务器从 Github 下载慢/无法下载的问题。
+
+#### 2020年12月01日，版本 v1.1.0 :id=110
+ - **1. 新增** 指定网易云音乐 IP（即 -f 参数）。  
+
+#### 2020年09月06日，版本 v1.0.9 :id=109
+ - **1. 更新** 脚本更新地址、系统服务脚本地址（不影响旧脚本检查更新）。  
+ - **2. 修复** 安装过程中，修改服务器时区可能报错的问题（纯粹强迫症）。
+
+#### 2020年06月17日，版本 v1.0.8 :id=108
+ - **1. 修复** 查看链接信息时，[显示 IP+IP归属地 格式]选项报错的问题。  
+
+#### 2020年06月09日，版本 v1.0.7 :id=107
+ - **1. 修复** 监听双端口时，无法查看链接信息的问题。  
+
+****
+
+<details>
+<summary>点击展开 查看更多</summary>
+
 #### 2020年04月05日，版本 v1.0.6 :id=106
- - **1. 修复** 当使用自签证书时，配置信息中代理端口显示不正确的问题。
+ - **1. 修复** 当使用自签证书时，配置信息中代理端口显示不正确的问题。  
 
 #### 2019年12月02日，版本 v1.0.5 :id=105
- - **1. 修复** 安装时异常退出的问题。
+ - **1. 修复** 安装时异常退出的问题。  
 
 #### 2019年11月09日，版本 v1.0.4 :id=104
- - **1. 新增** 支持 HTTP:HTTPS 监听双端口，搭配自签证书使用。
+ - **1. 新增** 支持 HTTP:HTTPS 监听双端口，搭配自签证书使用。  
  
 #### 2019年09月09日，版本 v1.0.3 :id=103
- - **1. 优化** 获取 Node 最新版本失败后，将使用备用的版本号。
+ - **1. 优化** 获取 Node 最新版本失败后，将使用备用的版本号。  
 
 #### 2019年09月09日，版本 v1.0.2 :id=102
- - **1. 修复** 部分系统因根证书不完整而导致下载失败的问题。
+ - **1. 修复** 部分系统因根证书不完整而导致下载失败的问题。  
  
 #### 2019年09月03日，版本 v1.0.1 :id=101
- - **1. 修复** 谷歌云、腾讯云这类服务器安装后无法使用的问题。
+ - **1. 修复** 谷歌云、腾讯云这类服务器安装后无法使用的问题。  
  
 #### 2019年08月31日，版本 v1.0.0 :id=100
- - **1. 发布** 第一个版本。
+ - **1. 发布** 第一个版本。  
+
+</details>

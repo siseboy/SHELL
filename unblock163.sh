@@ -3,13 +3,14 @@ PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 # --------------------------------------------------------------
 #	系统: CentOS/Debian/Ubuntu
-#	项目: 解锁网易云音乐一键脚本
-#	版本: 1.0.6
+#	项目: 解锁网易云音乐
+#	版本: 1.1.1
 #	作者: XIU2
-#	地址: https://github.com/XIU2/SHELL
+#	官网: https://shell.xiu2.xyz
+#	项目: https://github.com/XIU2/Shell
 # --------------------------------------------------------------
 
-NOW_VER_SHELL="1.0.6"
+NOW_VER_SHELL="1.1.1"
 NEW_VER_NODE_BACKUP="12.16.1"
 FILEPASH=$(cd "$(dirname "$0")"; pwd)
 FILEPASH_NOW=$(echo -e "${FILEPASH}"|awk -F "$0" '{print $1}')
@@ -83,10 +84,10 @@ _CHECK_INFO(){
 		fi
 	elif [[ "${1}" == "IP_ADDRESS" ]]; then
 		if [[ ! -z "${TARGET_IP}" ]]; then
-			for((IP_ADDRESS_INTEGER = ${TARGET_IP_total}; IP_ADDRESS_INTEGER >= 1; IP_ADDRESS_INTEGER--))
+			for((IP_ADDRESS_INTEGER = ${TARGET_IP_TOTAL}; IP_ADDRESS_INTEGER >= 1; IP_ADDRESS_INTEGER--))
 			do
 				IP_ADDRESS_IP=$(echo "${TARGET_IP}" |sed -n "$IP_ADDRESS_INTEGER"p)
-				IP_ADDRESS_IP_ADDRESS=$(wget -qO- -t1 -T2 http://freeapi.ipip.net/${IP_ADDRESS_IP}|sed 's/\"//g;s/,//g;s/\[//g;s/\]//g')
+				IP_ADDRESS_IP_ADDRESS=$(wget -qO- -t2 -T3 http://freeapi.ipip.net/${IP_ADDRESS_IP}|sed 's/\"//g;s/,//g;s/\[//g;s/\]//g')
 				echo -e "${GREEN_FONT_PREFIX}${IP_ADDRESS_IP}${FONT_COLOR_SUFFIX} (${IP_ADDRESS_IP_ADDRESS})"
 				sleep 1s
 			done
@@ -116,14 +117,17 @@ _INSTALLATION_DEPENDENCY(){
 	[[ -z "${GIT_VER}" ]] && echo -e "${ERROR} 依赖 Git 安装失败，请检查！" && exit 1
 	[[ -z "${XZ_VER}" ]] && echo -e "${ERROR} 解压缩依赖 xz 安装失败，请检查！" && exit 1
 	[[ -z "${TAR_VER}" ]] && echo -e "${ERROR} 解压缩依赖 tar 安装失败，请检查！" && exit 1
+
 	# 修改服务器时区为北京时间
-	\cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+	MD5_SHANGHAI=$(md5sum /usr/share/zoneinfo/Asia/Shanghai | awk '{print $1}')
+	MD5_LOCALTIME=$(md5sum /etc/localtime | awk '{print $1}')
+	[[ "${MD5_SHANGHAI}" != "${MD5_LOCALTIME}" ]] && \cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 }
 # 下载主程序及相关依赖
 _DOWNLOAD(){
 	[[  -e "${FOLDER}" ]] && rm -rf "${FOLDER}"
 	echo -e "${INFO} 开始安装 ${NAME} ..."
-	env GIT_SSL_NO_VERIFY=true git clone -b master https://github.com/nondanee/UnblockNeteaseMusic.git "${FOLDER}"
+	env GIT_SSL_NO_VERIFY=true git clone -b master https://gitee.com/mirrors/UnblockNeteaseMusic.git "${FOLDER}"
 	[[ ! -e "${FOLDER}" ]] && echo -e "${ERROR} ${NAME} 下载失败 !" && _INSTALLATION_FAILURE_CLEANUP
 	echo -e "${INFO} ${NAME} 安装完成，开始安装其依赖 Node ..."
 	
@@ -143,13 +147,13 @@ _DOWNLOAD(){
 # 安装系统服务
 _SERVICE(){
 	if [[ "${SYSTEM_RELEASE}" = "centos" ]]; then
-		wget --no-check-certificate "https://raw.githubusercontent.com/XIU2/SHELL/master/service/${NAME_SERVICE}_centos" -O "/etc/init.d/${NAME_SERVICE}"
+		wget --no-check-certificate "https://shell.xiu2.xyz/service/${NAME_SERVICE}_centos" -O "/etc/init.d/${NAME_SERVICE}"
 		[[ !  -e "/etc/init.d/${NAME_SERVICE}" ]] && echo -e "${ERROR} ${NAME} 服务管理脚本下载失败 !" && _INSTALLATION_FAILURE_CLEANUP
 		chmod +x "/etc/init.d/${NAME_SERVICE}"
 		chkconfig --add "${NAME_SERVICE}"
 		chkconfig "${NAME_SERVICE}" on
 	else
-		wget --no-check-certificate "https://raw.githubusercontent.com/XIU2/SHELL/master/service/${NAME_SERVICE}_debian" -O "/etc/init.d/${NAME_SERVICE}"
+		wget --no-check-certificate "https://shell.xiu2.xyz/service/${NAME_SERVICE}_debian" -O "/etc/init.d/${NAME_SERVICE}"
 		[[ !  -e "/etc/init.d/${NAME_SERVICE}" ]] && echo -e "${ERROR} ${NAME} 服务管理脚本下载失败 !" && _INSTALLATION_FAILURE_CLEANUP
 		chmod +x "/etc/init.d/${NAME_SERVICE}"
 		update-rc.d -f "${NAME_SERVICE}" defaults
@@ -169,11 +173,13 @@ _CONFIG_OPERATION(){
 		PORT=$(cat ${FILE_CONF}|grep 'PORT = '|awk -F 'PORT = ' '{print $NF}')
 		SOURCE=$(cat ${FILE_CONF}|grep 'SOURCE = '|awk -F 'SOURCE = ' '{print $NF}')
 		STRICT=$(cat ${FILE_CONF}|grep 'STRICT = '|awk -F 'STRICT = ' '{print $NF}')
+		FORCEHOST=$(cat ${FILE_CONF}|grep 'FORCEHOST = '|awk -F 'FORCEHOST = ' '{print $NF}')
 	elif [[ "${1}" == "WRITE" ]]; then
 		cat > ${FILE_CONF}<<-EOF
 PORT = ${PORT}
 SOURCE = ${SOURCE}
 STRICT = ${STRICT}
+FORCEHOST = ${FORCEHOST}
 EOF
 	fi
 }
@@ -184,7 +190,8 @@ _SET(){
  ${GREEN_FONT_PREFIX}1.${FONT_COLOR_SUFFIX}  修改 代理端口
  ${GREEN_FONT_PREFIX}2.${FONT_COLOR_SUFFIX}  修改 音源排序
  ${GREEN_FONT_PREFIX}3.${FONT_COLOR_SUFFIX}  修改 严格模式
- ${GREEN_FONT_PREFIX}4.${FONT_COLOR_SUFFIX}  修改 全部配置" && echo
+ ${GREEN_FONT_PREFIX}4.${FONT_COLOR_SUFFIX}  修改 指定 IP
+ ${GREEN_FONT_PREFIX}5.${FONT_COLOR_SUFFIX}  修改 全部配置" && echo
 	read -e -p "(默认: 取消):" SET_INDEX
 	[[ -z "${SET_INDEX}" ]] && echo "已取消..." && exit 1
 	if [[ "${SET_INDEX}" == "1" ]]; then
@@ -207,16 +214,22 @@ _SET(){
 		_RESTART
 	elif [[ "${SET_INDEX}" == "4" ]]; then
 		_CONFIG_OPERATION "READ"
+		_FORCEHOST_SET
+		_CONFIG_OPERATION "WRITE"
+		_RESTART
+	elif [[ "${SET_INDEX}" == "5" ]]; then
+		_CONFIG_OPERATION "READ"
 		OLD_PORT="${PORT}"
 		_PORT_SET
 		_SOURCE_SET
 		_STRICT_SET
+		_FORCEHOST_SET
 		_CONFIG_OPERATION "WRITE"
 		_IPTABLES_OPTION "DEL" "${OLD_PORT}"
 		_IPTABLES_OPTION "ADD"
 		_RESTART
 	else
-		echo -e "${ERROR} 请输入正确的数字！ [1-4]" && exit 1
+		echo -e "${ERROR} 请输入正确的数字！ [1-5]" && exit 1
 	fi
 }
 # 修改 端口
@@ -278,6 +291,14 @@ _STRICT_SET() {
 	echo -e "	严格模式 : ${RED_BACKGROUND_PREFIX} ${STRICT} ${FONT_COLOR_SUFFIX}"
 	echo "------------------------" && echo
 }
+# 修改 指定网易服务器 IP
+_FORCEHOST_SET() {
+	echo -e "指定网易服务器 IP，不懂请跳过。[格式：IPv4]"
+	read -e -p "(默认为空):" FORCEHOST
+	echo && echo "------------------------"
+	echo -e "	指定 IP : ${RED_BACKGROUND_PREFIX} ${FORCEHOST} ${FONT_COLOR_SUFFIX}"
+	echo "------------------------" && echo
+}
 # 安装
 _INSTALL() {
 	_CHECK_INFO "ROOT"
@@ -286,6 +307,7 @@ _INSTALL() {
 	_PORT_SET
 	_SOURCE_SET
 	_STRICT_SET
+	_FORCEHOST_SET
 	echo -e "${INFO} 开始安装/配置 依赖..."
 	_INSTALLATION_DEPENDENCY
 	echo -e "${INFO} 开始下载/安装..."
@@ -371,15 +393,16 @@ _VIEW(){
 	_CHECK_INFO "INSTALL_STATUS"
 	_CONFIG_OPERATION "READ"
 	_CHECK_INFO "IPV4"
-	PORT=$(echo $PORT | awk -F ':' '{print $(NF-1)}')
+	PORT_HTTP=$(echo ${PORT} | awk -F ':' '{print $(NF-1)}')
 	clear
 	echo -e "\n	UnblockNeteaseMusic 配置信息：
 	------------------------
-	本机地址\t: ${GREEN_FONT_PREFIX}${IPV4}${FONT_COLOR_SUFFIX}
-	代理端口\t: ${GREEN_FONT_PREFIX}${PORT}${FONT_COLOR_SUFFIX}
-	音源排序\t: ${GREEN_FONT_PREFIX}${SOURCE}${FONT_COLOR_SUFFIX}
-	严格模式\t: ${GREEN_FONT_PREFIX}${STRICT}${FONT_COLOR_SUFFIX}\n
-	PAC 地址\t: ${RED_FONT_PREFIX}http://${IPV4}:${PORT}/proxy.pac${FONT_COLOR_SUFFIX}\n"
+	本机地址: ${GREEN_FONT_PREFIX}${IPV4}${FONT_COLOR_SUFFIX}
+	代理端口: ${GREEN_FONT_PREFIX}${PORT}${FONT_COLOR_SUFFIX}
+	音源排序: ${GREEN_FONT_PREFIX}${SOURCE}${FONT_COLOR_SUFFIX}
+	严格模式: ${GREEN_FONT_PREFIX}${STRICT}${FONT_COLOR_SUFFIX}
+	指定 IP: ${GREEN_FONT_PREFIX}${FORCEHOST}${FONT_COLOR_SUFFIX}\n
+	PAC 地址: ${RED_FONT_PREFIX}http://${IPV4}:${PORT_HTTP}/proxy.pac${FONT_COLOR_SUFFIX}\n"
 }
 # 查看 日志
 _VIEW_LOG(){
@@ -391,26 +414,31 @@ _VIEW_LOG(){
 # 查看 链接信息
 _VIEW_CONNECTION_INFO_WITH(){
 	_CONFIG_OPERATION "READ"
-	TARGET_IP=$(ss state connected sport = :${PORT} -tn|sed '1d'|awk '{print $NF}'|awk -F ':' '{print $(NF-1)}'|sort -u)
-	if [[ -z ${TARGET_IP} ]]; then
-		TARGET_IP_TOTAL="0"
-		echo -e "端口: ${GREEN_FONT_PREFIX}"${PORT}"${FONT_COLOR_SUFFIX}\t 链接IP总数: ${GREEN_FONT_PREFIX}"${TARGET_IP_TOTAL}"${FONT_COLOR_SUFFIX}\t 当前链接IP: "
-	else
-		TARGET_IP_TOTAL=$(echo -e "${TARGET_IP}"|wc -l)
-		if [[ "${1}" == "IP_ADDRESS" ]]; then
-			echo -e "端口: ${GREEN_FONT_PREFIX}"${PORT}"${FONT_COLOR_SUFFIX}\t 链接IP总数: ${GREEN_FONT_PREFIX}"${TARGET_IP_TOTAL}"${FONT_COLOR_SUFFIX}\t 当前链接IP: "
-			_CHECK_INFO "IP_ADDRESS"
-			echo
-		else
-			TARGET_IP=$(echo -e "\n${TARGET_IP}")
-			echo -e "端口: ${GREEN_FONT_PREFIX}"${PORT}"${FONT_COLOR_SUFFIX}\t 链接IP总数: ${GREEN_FONT_PREFIX}"${TARGET_IP_TOTAL}"${FONT_COLOR_SUFFIX}\t 当前链接IP: ${GREEN_FONT_PREFIX}${TARGET_IP}${FONT_COLOR_SUFFIX}\n"
-		fi
-	fi
-	TARGET_IP=""
+	PORT_FORMAT_DETECTION=$(echo "${PORT}"|grep ":")
+	[[ ! -z ${PORT_FORMAT_DETECTION} ]] && PORT=$(echo "${PORT}"|sed 's/:/ /g')
+	for ONE_PORT in ${PORT}
+		do
+		TARGET_IP=$(ss state connected sport = :${ONE_PORT} -tn|sed '1d'|awk '{print $NF}'|awk -F ':' '{print $(NF-1)}'|sort -u)
+			if [[ -z ${TARGET_IP} ]]; then
+				TARGET_IP_TOTAL="0"
+				echo -e "端口: ${GREEN_FONT_PREFIX}"${ONE_PORT}"${FONT_COLOR_SUFFIX}\t 链接IP总数: ${GREEN_FONT_PREFIX}"${TARGET_IP_TOTAL}"${FONT_COLOR_SUFFIX}\t 当前链接IP: "
+			else
+				TARGET_IP_TOTAL=$(echo -e "${TARGET_IP}"|wc -l)
+				if [[ "${1}" == "IP_ADDRESS" ]]; then
+					echo -e "端口: ${GREEN_FONT_PREFIX}"${ONE_PORT}"${FONT_COLOR_SUFFIX}\t 链接IP总数: ${GREEN_FONT_PREFIX}"${TARGET_IP_TOTAL}"${FONT_COLOR_SUFFIX}\t 当前链接IP: "
+					_CHECK_INFO "IP_ADDRESS"
+					echo
+				else
+					TARGET_IP=$(echo -e "\n${TARGET_IP}")
+					echo -e "端口: ${GREEN_FONT_PREFIX}"${ONE_PORT}"${FONT_COLOR_SUFFIX}\t 链接IP总数: ${GREEN_FONT_PREFIX}"${TARGET_IP_TOTAL}"${FONT_COLOR_SUFFIX}\t 当前链接IP: ${GREEN_FONT_PREFIX}${TARGET_IP}${FONT_COLOR_SUFFIX}\n"
+				fi
+			fi
+			TARGET_IP=""
+		done
 }
 # 选择 链接信息
 _VIEW_CONNECTION_INFO(){
-	_CHECK_INFO "INSTALL_STATUS"
+	#_CHECK_INFO "INSTALL_STATUS"
 	echo && echo -e "请选择要显示的格式：
  ${GREEN_FONT_PREFIX}1.${FONT_COLOR_SUFFIX} 显示 IP 格式
  ${GREEN_FONT_PREFIX}2.${FONT_COLOR_SUFFIX} 显示 IP+IP归属地 格式" && echo
@@ -471,14 +499,14 @@ _IPTABLES_OPTION(){
 }
 # 更新脚本
 _UPDATE_SHELL(){
-	NEW_VER_SHELL=$(wget --no-check-certificate -qO- -t1 -T3 "https://raw.githubusercontent.com/XIU2/SHELL/master/unblock163.sh"|grep 'NOW_VER_SHELL="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1)
+	NEW_VER_SHELL=$(wget --no-check-certificate -qO- -t1 -T3 "https://shell.xiu2.xyz/unblock163.sh"|grep 'NOW_VER_SHELL="'|awk -F "=" '{print $NF}'|sed 's/\"//g'|head -1)
 	[[ -z "${NEW_VER_SHELL}" ]] && echo -e "${ERROR} 获取脚本最新版本失败！无法链接到 Github !" && exit 1
 	#if [[ "${NEW_VER_SHELL}" != "${NOW_VER_SHELL}" ]]; then
 		if [[ -e "/etc/init.d/${NAME_SERVICE}" ]]; then
 			rm -rf "/etc/init.d/${NAME_SERVICE}"
 			_SERVICE
 		fi
-		wget -N --no-check-certificate "https://raw.githubusercontent.com/XIU2/SHELL/master/unblock163.sh"
+		wget -N --no-check-certificate "https://shell.xiu2.xyz/unblock163.sh"
 		chmod +x "${FILEPASH_NOW}/unblock163.sh"
 		echo -e "脚本已更新为最新版本[ ${NEW_VER_SHELL} ] !\n${TIP} 因为更新方式为直接覆盖当前运行的脚本，所以可能下面会提示一些报错，无视即可。" && exit 0
 	#else
@@ -494,13 +522,13 @@ _CHECK_INFO "OS"
   
  ${GREEN_FONT_PREFIX} 0.${FONT_COLOR_SUFFIX} 更新脚本
 ----------
- ${GREEN_FONT_PREFIX} 1.${FONT_COLOR_SUFFIX} 安装 ${NAME}
- ${GREEN_FONT_PREFIX} 2.${FONT_COLOR_SUFFIX} 更新 ${NAME}
- ${GREEN_FONT_PREFIX} 3.${FONT_COLOR_SUFFIX} 卸载 ${NAME}
+ ${GREEN_FONT_PREFIX} 1.${FONT_COLOR_SUFFIX} 安装
+ ${GREEN_FONT_PREFIX} 2.${FONT_COLOR_SUFFIX} 更新
+ ${GREEN_FONT_PREFIX} 3.${FONT_COLOR_SUFFIX} 卸载
 ----------
- ${GREEN_FONT_PREFIX} 4.${FONT_COLOR_SUFFIX} 启动 ${NAME}
- ${GREEN_FONT_PREFIX} 5.${FONT_COLOR_SUFFIX} 停止 ${NAME}
- ${GREEN_FONT_PREFIX} 6.${FONT_COLOR_SUFFIX} 重启 ${NAME}
+ ${GREEN_FONT_PREFIX} 4.${FONT_COLOR_SUFFIX} 启动
+ ${GREEN_FONT_PREFIX} 5.${FONT_COLOR_SUFFIX} 停止
+ ${GREEN_FONT_PREFIX} 6.${FONT_COLOR_SUFFIX} 重启
 ----------
  ${GREEN_FONT_PREFIX} 7.${FONT_COLOR_SUFFIX} 设置 配置信息
  ${GREEN_FONT_PREFIX} 8.${FONT_COLOR_SUFFIX} 查看 账号信息
