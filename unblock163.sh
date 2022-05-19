@@ -4,14 +4,14 @@ export PATH
 # --------------------------------------------------------------
 #	系统: CentOS/Debian/Ubuntu
 #	项目: 解锁网易云音乐
-#	版本: 1.1.1
+#	版本: 1.1.7
 #	作者: XIU2
 #	官网: https://shell.xiu2.xyz
 #	项目: https://github.com/XIU2/Shell
 # --------------------------------------------------------------
 
-NOW_VER_SHELL="1.1.1"
-NEW_VER_NODE_BACKUP="12.16.1"
+NOW_VER_SHELL="1.1.5"
+NEW_VER_NODE_BACKUP="16.9.1"
 FILEPASH=$(cd "$(dirname "$0")"; pwd)
 FILEPASH_NOW=$(echo -e "${FILEPASH}"|awk -F "$0" '{print $1}')
 NAME="UnblockNeteaseMusic"
@@ -68,7 +68,7 @@ _CHECK_INFO(){
 	elif [[ "${1}" == "PID" ]]; then
 		PID=$(ps -ef| grep "${NAME_PID}"| grep -v "grep" | grep -v "init.d" |grep -v "service" |awk '{print $2}')
 	elif [[ "${1}" == "NEW_VER_NODE" ]]; then
-		NEW_VER_NODE=$(wget -qO- https://nodejs.org/en/download/| grep "Latest LTS Version"| awk -F '<strong>' '{print $2}'| awk -F '</strong>' '{print $1}')
+		NEW_VER_NODE=$(wget -qO- https://nodejs.org/en/download/current/| grep "Latest Current Version"| awk -F '<strong>' '{print $2}'| awk -F '</strong>' '{print $1}')
 		[[ -z "${NEW_VER_NODE}" ]] && NEW_VER_NODE="${NEW_VER_NODE_BACKUP}"
 		echo -e "${INFO} 检测到 Node 最新版本为 [ ${NEW_VER_NODE} ]"
 	elif [[ "${1}" == "IPV4" ]]; then
@@ -123,26 +123,35 @@ _INSTALLATION_DEPENDENCY(){
 	MD5_LOCALTIME=$(md5sum /etc/localtime | awk '{print $1}')
 	[[ "${MD5_SHANGHAI}" != "${MD5_LOCALTIME}" ]] && \cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 }
-# 下载主程序及相关依赖
+# 下载主程序
 _DOWNLOAD(){
 	[[  -e "${FOLDER}" ]] && rm -rf "${FOLDER}"
 	echo -e "${INFO} 开始安装 ${NAME} ..."
-	env GIT_SSL_NO_VERIFY=true git clone -b master https://gitee.com/mirrors/UnblockNeteaseMusic.git "${FOLDER}"
+	env GIT_SSL_NO_VERIFY=true git clone -b enhanced https://api.mtr.pub/UnblockNeteaseMusic/server.git "${FOLDER}"
 	[[ ! -e "${FOLDER}" ]] && echo -e "${ERROR} ${NAME} 下载失败 !" && _INSTALLATION_FAILURE_CLEANUP
-	echo -e "${INFO} ${NAME} 安装完成，开始安装其依赖 Node ..."
-	
-	cd "${FOLDER}"
-	
+	echo -e "${INFO} ${NAME} 安装完成，开始安装其依赖 Node ..."	
+	_DOWNLOAD_NODE
+}
+# 下载NODE
+_DOWNLOAD_NODE(){
+	cd "${FOLDER}"	
 	[[  -e "${FOLDER_NODE}" ]] && rm -rf "${FOLDER_NODE}"
-	wget --no-check-certificate "https://nodejs.org/dist/v${NEW_VER_NODE}/node-v${NEW_VER_NODE}-linux-x64.tar.xz"
-	[[ ! -e "node-v${NEW_VER_NODE}-linux-x64.tar.xz" ]] && echo -e "${ERROR} 依赖 Node 压缩包下载失败！" && _INSTALLATION_FAILURE_CLEANUP
-	xz -d "node-v${NEW_VER_NODE}-linux-x64.tar.xz"
-	[[ ! -e "node-v${NEW_VER_NODE}-linux-x64.tar" ]] && echo -e "${ERROR} 依赖 Node 压缩包解压失败（可能是 压缩包损坏 或者 没有安装解压工具 xz）！" && _INSTALLATION_FAILURE_CLEANUP
-	tar -xf "node-v${NEW_VER_NODE}-linux-x64.tar"
-	[[ ! -e "node-v${NEW_VER_NODE}-linux-x64" ]] && echo -e "${ERROR} 依赖 Node 压缩包解压失败（可能是 压缩包损坏 或者 没有安装解压工具 tar）！" && _INSTALLATION_FAILURE_CLEANUP
-	mv "node-v${NEW_VER_NODE}-linux-x64" "node"
+	if [[ "${SYSTEM_BIT}" == "x86_64" ]]; then
+		FILE_NAME="node-v${NEW_VER_NODE}-linux-x64"
+		wget --no-check-certificate "https://nodejs.org/dist/v${NEW_VER_NODE}/${FILE_NAME}.tar.xz"
+	else
+		FILE_NAME="node-v${NEW_VER_NODE}-linux-arm64"
+		wget --no-check-certificate "https://nodejs.org/dist/v${NEW_VER_NODE}/${FILE_NAME}.tar.xz"
+	fi
+	[[ ! -e "${FILE_NAME}.tar.xz" ]] && echo -e "${ERROR} 依赖 Node 压缩包下载失败！" && _INSTALLATION_FAILURE_CLEANUP
+	xz -d "${FILE_NAME}.tar.xz"
+	[[ ! -e "${FILE_NAME}.tar" ]] && echo -e "${ERROR} 依赖 Node 压缩包解压失败（可能是 压缩包损坏 或者 没有安装解压工具 xz）！" && _INSTALLATION_FAILURE_CLEANUP
+	tar -xf "${FILE_NAME}.tar"
+	[[ ! -e "${FILE_NAME}" ]] && echo -e "${ERROR} 依赖 Node 压缩包解压失败（可能是 压缩包损坏 或者 没有安装解压工具 tar）！" && _INSTALLATION_FAILURE_CLEANUP
+	mv "${FILE_NAME}" "node"
 	[[ ! -e "${FOLDER_NODE}" ]] && echo -e "${ERROR} 依赖 Node 文件夹重命名失败！" && _INSTALLATION_FAILURE_CLEANUP
 	chmod +x "{FILE_NODE}"
+	rm "${FILE_NAME}"*
 }
 # 安装系统服务
 _SERVICE(){
@@ -173,12 +182,16 @@ _CONFIG_OPERATION(){
 		PORT=$(cat ${FILE_CONF}|grep 'PORT = '|awk -F 'PORT = ' '{print $NF}')
 		SOURCE=$(cat ${FILE_CONF}|grep 'SOURCE = '|awk -F 'SOURCE = ' '{print $NF}')
 		STRICT=$(cat ${FILE_CONF}|grep 'STRICT = '|awk -F 'STRICT = ' '{print $NF}')
+		ENDPOINT=$(cat ${FILE_CONF}|grep 'ENDPOINT = '|awk -F 'ENDPOINT = ' '{print $NF}')
+		ENDPOINTURL=$(cat ${FILE_CONF}|grep 'ENDPOINTURL = '|awk -F 'ENDPOINTURL = ' '{print $NF}')
 		FORCEHOST=$(cat ${FILE_CONF}|grep 'FORCEHOST = '|awk -F 'FORCEHOST = ' '{print $NF}')
 	elif [[ "${1}" == "WRITE" ]]; then
 		cat > ${FILE_CONF}<<-EOF
 PORT = ${PORT}
 SOURCE = ${SOURCE}
 STRICT = ${STRICT}
+ENDPOINT = ${ENDPOINT}
+ENDPOINTURL = ${ENDPOINTURL}
 FORCEHOST = ${FORCEHOST}
 EOF
 	fi
@@ -190,8 +203,9 @@ _SET(){
  ${GREEN_FONT_PREFIX}1.${FONT_COLOR_SUFFIX}  修改 代理端口
  ${GREEN_FONT_PREFIX}2.${FONT_COLOR_SUFFIX}  修改 音源排序
  ${GREEN_FONT_PREFIX}3.${FONT_COLOR_SUFFIX}  修改 严格模式
- ${GREEN_FONT_PREFIX}4.${FONT_COLOR_SUFFIX}  修改 指定 IP
- ${GREEN_FONT_PREFIX}5.${FONT_COLOR_SUFFIX}  修改 全部配置" && echo
+ ${GREEN_FONT_PREFIX}4.${FONT_COLOR_SUFFIX}  修改 配置 ENDPOINT
+ ${GREEN_FONT_PREFIX}5.${FONT_COLOR_SUFFIX}  修改 指定 IP
+ ${GREEN_FONT_PREFIX}6.${FONT_COLOR_SUFFIX}  修改 全部配置" && echo
 	read -e -p "(默认: 取消):" SET_INDEX
 	[[ -z "${SET_INDEX}" ]] && echo "已取消..." && exit 1
 	if [[ "${SET_INDEX}" == "1" ]]; then
@@ -214,22 +228,28 @@ _SET(){
 		_RESTART
 	elif [[ "${SET_INDEX}" == "4" ]]; then
 		_CONFIG_OPERATION "READ"
-		_FORCEHOST_SET
+		_ENDPOINT_SET
 		_CONFIG_OPERATION "WRITE"
 		_RESTART
 	elif [[ "${SET_INDEX}" == "5" ]]; then
+		_CONFIG_OPERATION "READ"
+		_FORCEHOST_SET
+		_CONFIG_OPERATION "WRITE"
+		_RESTART
+	elif [[ "${SET_INDEX}" == "6" ]]; then
 		_CONFIG_OPERATION "READ"
 		OLD_PORT="${PORT}"
 		_PORT_SET
 		_SOURCE_SET
 		_STRICT_SET
+		_ENDPOINT_SET
 		_FORCEHOST_SET
 		_CONFIG_OPERATION "WRITE"
 		_IPTABLES_OPTION "DEL" "${OLD_PORT}"
 		_IPTABLES_OPTION "ADD"
 		_RESTART
 	else
-		echo -e "${ERROR} 请输入正确的数字！ [1-5]" && exit 1
+		echo -e "${ERROR} 请输入正确的数字！ [1-6]" && exit 1
 	fi
 }
 # 修改 端口
@@ -266,11 +286,11 @@ _PORT_SET() {
 }
 # 修改 音源
 _SOURCE_SET() {
-	echo -e "请输入要使用的音源排序。 [qq kuwo kugou baidu xiami migu joox]"
+	echo -e "请输入要使用的音源排序。 [kuwo kugou pyncmd qq migu bilibili joox youtube]"
 	echo -e "${TIP} 音源排序指的是，无版权音乐会根据此处顺序优先匹配首位音源，如果匹配到就返回，反之就继续往后匹配。"
 	echo -e "${TIP} 不同音源之间请用空格隔开。"
-	read -e -p "(默认: qq migu kuwo kugou baidu):" SOURCE
-	[[ -z "${SOURCE}" ]] && SOURCE="qq migu kuwo kugou baidu"
+	read -e -p "(默认: kuwo kugou):" SOURCE
+	[[ -z "${SOURCE}" ]] && SOURCE="kuwo kugou"
 	SOURCE=$(echo "${SOURCE}"|sed -e 's/^ *//g;s/ *$//g')
 	echo && echo "------------------------"
 	echo -e "	音源排序 : ${RED_BACKGROUND_PREFIX} ${SOURCE} ${FONT_COLOR_SUFFIX}"
@@ -280,15 +300,42 @@ _SOURCE_SET() {
 _STRICT_SET() {
 	echo -e "是否启用严格模式？[Y/n]"
 	echo -e "${TIP} 启用严格模式后，本代理仅允许网易云音乐域名访问，即本地设备只能通过 Host 或 PAC 使用，强烈建议开启，否则所有设备流量都会经过本代理。"
-	read -e -p "(默认：Y [启用]):" STRICT
-	[[ -z "${STRICT}" ]] && STRICT="Y"
-	if [[ "${STRICT}" == [Yy] ]]; then
-		STRICT="YES"
-	else
+	read -e -p "(默认：N [禁用]):" STRICT
+	[[ -z "${STRICT}" ]] && STRICT="N"
+	if [[ "${STRICT}" == [Nn] ]]; then
 		STRICT="NO"
+	else
+		STRICT="YES"
+		if [[ "${ENDPOINT}" == "YES" && "${ENDPOINTURL}" != "http://music.163.com" ]]; then
+			ENDPOINT="NO"
+			echo -e "	检测到 ENDPOINTURL 服务器不是网易云，强制关闭ENDPOINT功能。"
+		fi
 	fi
 	echo && echo "------------------------"
 	echo -e "	严格模式 : ${RED_BACKGROUND_PREFIX} ${STRICT} ${FONT_COLOR_SUFFIX}"
+	echo "------------------------" && echo
+}
+# 配置 ENDPOINT
+_ENDPOINT_SET() {
+	echo -e "是否启用 ENDPOINT 功能？[Y/n]"
+	echo -e "${TIP} 启用 ENDPOINT 功能后，需要指定虚拟网易云音乐的域名。如不清楚作用，请勿开启。"
+	read -e -p "(默认：N [禁用]):" ENDPOINT
+	[[ -z "${ENDPOINT}" ]] && ENDPOINT="N"
+	if [[ "${ENDPOINT}" == [Nn] ]]; then
+		ENDPOINT="NO"
+	else
+		ENDPOINT="YES"
+		echo -e "指定ENDPOINT服务器："
+		read -e -p "(默认为：http://music.163.com ):" ENDPOINTURL
+		[[ -z "${ENDPOINTURL}" ]] && ENDPOINTURL="http://music.163.com"
+		if [[ "${ENDPOINTURL}" != "http://music.163.com" ]]; then
+			STRICT="NO"
+			echo -e "	检测到 ENDPOINTURL 服务器不是网易云，强制禁用严格模式。"
+		fi
+	fi
+	echo && echo "------------------------"
+	echo -e "	ENDPOINT模式 : ${RED_BACKGROUND_PREFIX} ${ENDPOINT} ${FONT_COLOR_SUFFIX}"
+	echo -e "	ENDPOINTURL : ${RED_BACKGROUND_PREFIX} ${ENDPOINTURL} ${FONT_COLOR_SUFFIX}"
 	echo "------------------------" && echo
 }
 # 修改 指定网易服务器 IP
@@ -307,6 +354,7 @@ _INSTALL() {
 	_PORT_SET
 	_SOURCE_SET
 	_STRICT_SET
+	_ENDPOINT_SET
 	_FORCEHOST_SET
 	echo -e "${INFO} 开始安装/配置 依赖..."
 	_INSTALLATION_DEPENDENCY
@@ -332,8 +380,21 @@ _UPDATE(){
 	echo -e "\n${INFO} 开始更新..."
 	cd "${FOLDER}"
 	env GIT_SSL_NO_VERIFY=true git pull
+	_UPDATE_NODE
 	echo -e "${INFO} 更新完成！开始重启...\n"
 	_RESTART
+}
+# 更新NODE
+_UPDATE_NODE(){
+        echo -e "\n${INFO} 开始更新NODE..."
+        _CHECK_INFO "NEW_VER_NODE"
+        NOW_VER_NODE=$("${FILE_NODE}" -v | awk -F 'v' '{print $2}')
+        if [[ "${NEW_VER_NODE}}" != "${NOW_VER_NODE}}" ]]; then
+	_DOWNLOAD_NODE
+                echo -e "脚本已更新为最新版本[ ${NEW_VER_NODE} ] !"
+        else
+                echo -e "NODE当前为最新版本不需更新 !"
+        fi
 }
 # 卸载
 _UNINSTALL() {
@@ -401,6 +462,8 @@ _VIEW(){
 	代理端口: ${GREEN_FONT_PREFIX}${PORT}${FONT_COLOR_SUFFIX}
 	音源排序: ${GREEN_FONT_PREFIX}${SOURCE}${FONT_COLOR_SUFFIX}
 	严格模式: ${GREEN_FONT_PREFIX}${STRICT}${FONT_COLOR_SUFFIX}
+	ENDPOINT模式: ${GREEN_FONT_PREFIX}${ENDPOINT}${FONT_COLOR_SUFFIX}
+	ENDPOINTURL: ${GREEN_FONT_PREFIX}${ENDPOINTURL}${FONT_COLOR_SUFFIX}
 	指定 IP: ${GREEN_FONT_PREFIX}${FORCEHOST}${FONT_COLOR_SUFFIX}\n
 	PAC 地址: ${RED_FONT_PREFIX}http://${IPV4}:${PORT_HTTP}/proxy.pac${FONT_COLOR_SUFFIX}\n"
 }
@@ -516,7 +579,7 @@ _UPDATE_SHELL(){
 # 脚本起始位置
 _CHECK_INFO "OS"
 [[ "${SYSTEM_RELEASE}" != "centos" ]] && [[ "${SYSTEM_RELEASE}" != "debian" ]]  && [[ "${SYSTEM_RELEASE}" != "ubuntu" ]] && echo -e "${ERROR} 本脚本不支持当前系统 ${SYSTEM_RELEASE} !" && exit 1
-[[ "${SYSTEM_BIT}" !=  "x86_64" ]] && echo -e "${ERROR} ${NAME} 的依赖 Node 不支持当前系统位数 ${SYSTEM_BIT} !" && exit 1
+[[ "${SYSTEM_BIT}" !=  "x86_64" ]] && [[ "${SYSTEM_BIT}" !=  "aarch64" ]] && echo -e "${ERROR} ${NAME} 的依赖 Node 不支持当前系统位数 ${SYSTEM_BIT} !" && exit 1
 
 	echo && echo -e "  UnblockNeteaseMusic 一键脚本 ${RED_FONT_PREFIX}[v${NOW_VER_SHELL}]${FONT_COLOR_SUFFIX}
   
@@ -531,7 +594,7 @@ _CHECK_INFO "OS"
  ${GREEN_FONT_PREFIX} 6.${FONT_COLOR_SUFFIX} 重启
 ----------
  ${GREEN_FONT_PREFIX} 7.${FONT_COLOR_SUFFIX} 设置 配置信息
- ${GREEN_FONT_PREFIX} 8.${FONT_COLOR_SUFFIX} 查看 账号信息
+ ${GREEN_FONT_PREFIX} 8.${FONT_COLOR_SUFFIX} 查看 配置信息
  ${GREEN_FONT_PREFIX} 9.${FONT_COLOR_SUFFIX} 查看 日志信息
  ${GREEN_FONT_PREFIX}10.${FONT_COLOR_SUFFIX} 查看 链接信息\n"
 	if [[ -e "${FILE}" ]]; then
@@ -584,3 +647,4 @@ _CHECK_INFO "OS"
 		echo "请输入正确数字 [0-10]"
 		;;
 	esac
+	

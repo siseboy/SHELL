@@ -2,16 +2,16 @@
 
 ## 脚本介绍
 
-?> 该脚本基于 [UnblockNeteaseMusic](https://github.com/nondanee/UnblockNeteaseMusic) 项目。  
+?> 该脚本基于 [UnblockNeteaseMusic](https://github.com/UnblockNeteaseMusic/server) 项目。  
 
 UnblockNeteaseMusic 是一个可以解锁网易云音乐灰色无版权音乐的代理工具。  
 原理是通过替换无版权音乐的链接为其他音源（QQ、酷我、酷狗、百度、咪咕、JOOX等）来实现解锁无版权音乐。**相当于在网易云音乐客户端中听全网版权音乐！**  
 
-?> 该脚本只适用于服务器，如果只想本地使用，请使用我写的 ~~[Windows 版](https://www.lanzoux.com/b0sopazc)~~ (被律师函警告，已停止更新)！  
+?> 该脚本只适用于服务器，如果只想本地使用，请使用我写的 ~~[Windows 版](https://www.lanzouq.com/b0sopazc)~~ (被律师函警告，已停止更新)！  
 **建议有条件的部署在国内服务器**，国外服务器只能用 QQ 音源，况且部署在国外相比国内或本地会慢上不少。
 
 ### 脚本版本
-**最新版本：** v1.1.1  
+**最新版本：** v1.1.7  
 
 ### 系统要求
 CentOS 6+ / Debian 6+ / Ubuntu 14.04 +  
@@ -255,6 +255,26 @@ LISTEN0      128           0.0.0.0:80         0.0.0.0:*    users:(("nginx",pid=6
 ****
 
 ## 更新日志
+
+#### 2022年04月16日，版本 v1.1.7 :id=117
+ - **1. 更新** UnblockNeteaseMusic 仓库源镜像源。  
+
+#### 2022年02月14日，版本 v1.1.6 :id=116
+ - **1. 更新** UnblockNeteaseMusic 仓库源镜像源。  
+
+#### 2021年09月21日，版本 v1.1.5 :id=115
+ - **1. 调整** 调整 严格模式 与 Endpoint 模式分开配置。  
+ - **2. 调整** Node 版本。  
+ - **3. 更新** 音源。
+
+#### 2021年09月20日，版本 v1.1.4 :id=114
+ - **1. 调整** 软件源为第三方持续维护的版本。  
+
+#### 2021年07月26日，版本 v1.1.3 :id=113
+ - **1. 修复** aarch64 ARMv8 支持。  
+
+#### 2021年07月26日，版本 v1.1.2 :id=112
+ - **1. 新增** aarch64 ARMv8 支持。  
 
 #### 2021年03月25日，版本 v1.1.1 :id=111
  - **1. 调整** UnblockNeteaseMusic 仓库源为国内镜像源。  
